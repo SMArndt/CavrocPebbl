@@ -6,6 +6,11 @@ from enums import FLACVersion
 from PIL import Image
 from pathlib import Path
 
+import plotly.graph_objects as go
+from stl import mesh
+import tempfile
+import numpy as np
+
 # -- PAGE SETUP (MUST BE FIRST)
 st.set_page_config(layout="wide")
 
@@ -145,10 +150,7 @@ elif page == "Model Construction":
     tabs = st.tabs(["Stoping", "Topography", "Development", "Area of Interest", "Historical Mining"])
 
     with tabs[0]:
-        st.subheader("[DEBUG] stopex fields")
-        st.write("Has 'model_construction':", hasattr(stopex, 'model_construction'))
-        st.write("Type of stopex:", type(stopex))
-        st.write("stopex dict:", stopex.model_dump())
+        
         st.subheader("Stoping")
         stoping = ModelConstructionDetail()
         stoping_file = st.file_uploader("Select Stoping Geometry File (for local path capture only)", type=["stl", "dxf"], key="stoping_file")
@@ -175,9 +177,32 @@ elif page == "Model Construction":
 
         stopex.model_construction.stoping_enabled = True
         stopex.model_construction.model_construction_detail = ["stoping"]
-        stopex.model_construction.include_topography = "top"
-        
+        stopex.model_construction.include_topography = "top"        
 
+        # -- STL Preview for Stoping
+        if stoping_file and stoping_file.name.endswith(".stl"):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".stl") as tmp_file:
+                tmp_file.write(stoping_file.read())
+                tmp_file_path = tmp_file.name
+
+            try:
+                stl_mesh = mesh.Mesh.from_file(tmp_file_path)
+                vertices = np.reshape(stl_mesh.vectors, (-1, 3))
+                x, y, z = vertices[:, 0], vertices[:, 1], vertices[:, 2]
+                i = np.arange(0, len(vertices), 3)
+                j = i + 1
+                k = i + 2
+
+                fig = go.Figure(data=[go.Mesh3d(
+                    x=x, y=y, z=z,
+                    i=i, j=j, k=k,
+                    opacity=0.5,
+                    color='gray'
+                )])
+                fig.update_layout(title="Stoping Geometry Preview", margin=dict(l=0, r=0, t=30, b=0))
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.error(f"Failed to preview STL: {e}")
     with tabs[1]:
         st.subheader("Topography")
         stopex.topography.enabled = st.checkbox("Include Topography", value=stopex.topography.enabled, key="topo_enabled")
