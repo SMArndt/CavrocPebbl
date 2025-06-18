@@ -23,9 +23,20 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="CavrocPebbl.py" />
+    <Compile Include="enums.py" />
+    <Compile Include="models.py" />
+    <Compile Include="src\bubble_base.py" />
+    <Compile Include="src\utils.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|streamlit" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="src\" />
+    <Folder Include="src\__pycache__\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="src\__pycache__\bubble_base.cpython-311.pyc" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
