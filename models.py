@@ -5,7 +5,7 @@ from pydantic import (BaseModel, ConfigDict, Field, field_validator,
                       model_validator)
 
 #from .bubble_base import BubbleBaseModel, parse_enum
-from src.bubble_base import BubbleBaseModel, parse_enum
+from bubble_base import BubbleBaseModel, parse_enum
 #from .enums import (AOIGeoType, AppType, BackfillDelayRule, BackfillMaterial,
 from enums import (AOIGeoType, AppType, BackfillDelayRule, BackfillMaterial,
                     BackfillType, DensificationLevel, DomainType,
@@ -85,7 +85,7 @@ class RocBoxInput(BaseModel):
         mode="before",
     )
     def strip_file_urls(cls, v):
-        from src.utils import extract_filename_from_url
+        from utils import extract_filename_from_url
 
         return extract_filename_from_url(v)
 
@@ -177,7 +177,7 @@ class SlopeXModelConstruction(BubbleBaseModel):
         mode="before",
     )
     def strip_files(cls, v):
-        from src.utils import extract_filename_from_url
+        from utils import extract_filename_from_url
 
         return extract_filename_from_url(v)
 
@@ -239,7 +239,7 @@ class SettingModel(BubbleBaseModel):
 
     @field_validator("import_map3D_file", "import_mesh_file", mode="before")
     def validate_file_fields(cls, v):
-        from src.utils import extract_filename_from_url
+        from utils import extract_filename_from_url
 
         return extract_filename_from_url(v)
 
@@ -252,7 +252,7 @@ class SettingModel(BubbleBaseModel):
     @field_validator("FLAC_version", mode="before")
     def parse_flac_version(cls, v):
         # Allow human-readable labels (e.g. "7.0") to map to FLACVersion
-        from src.bubble_base import parse_enum
+        from bubble_base import parse_enum
 
         if v is None or isinstance(v, FLACVersion):
             return v
@@ -320,7 +320,7 @@ class ModelConstructionDetail(BubbleBaseModel):
         """
         Normalize various representations (int code, enum, or string) to RelGeoAccuracy.
         """
-        from src.bubble_base import parse_enum
+        from bubble_base import parse_enum
 
         # Use parse_enum to handle int codes (mapping by order), enum names, values, and labels
         parsed = parse_enum(RelGeoAccuracy, v)
@@ -328,7 +328,7 @@ class ModelConstructionDetail(BubbleBaseModel):
 
     @field_validator("file", mode="before")
     def strip_file_urls(cls, v):
-        from src.utils import extract_filename_from_url
+        from utils import extract_filename_from_url
 
         return extract_filename_from_url(v)
 
@@ -390,7 +390,7 @@ class BackfillModel(BubbleBaseModel):
     @field_validator("backfill_file", mode="before")
     @classmethod
     def strip_file_urls(cls, v):
-        from src.utils import extract_filename_from_url
+        from utils import extract_filename_from_url
 
         if isinstance(v, dict):
             v = v.get("url") or v.get("id") or ""
@@ -527,7 +527,7 @@ class FaultModel(BubbleBaseModel):
 
     @field_validator("fault_surfacefile", "fault_file", mode="before")
     def strip_file_urls(cls, v):
-        from src.utils import extract_filename_from_url
+        from utils import extract_filename_from_url
 
         return extract_filename_from_url(v)
 
@@ -677,7 +677,7 @@ class DomainModel(BubbleBaseModel):
 
     @field_validator("domain_file", "domain_surface_file", mode="before")
     def strip_file_urls(cls, v):
-        from src.utils import extract_filename_from_url
+        from utils import extract_filename_from_url
 
         return extract_filename_from_url(v)
 
@@ -705,7 +705,7 @@ class InsituStressModel(BubbleBaseModel):
     @field_validator("stress_option", mode="before")
     def parse_stress_option(cls, v):
         # Allow human-readable or db_value strings to map to InsituStressOption
-        from src.bubble_base import parse_enum
+        from bubble_base import parse_enum
 
         if v is None:
             return None
@@ -810,7 +810,7 @@ class ProjectModel(BubbleBaseModel):
 
     @field_validator("fault_global_file", "upload_file", "input_file", mode="before")
     def strip_file_urls(cls, v):
-        from src.utils import extract_filename_from_url
+        from utils import extract_filename_from_url
 
         return extract_filename_from_url(v)
 
@@ -834,7 +834,8 @@ class Stopex(BubbleBaseModel):
 
     project: ProjectModel
     settings: SettingModel
-    model_construction: Optional[ModelConstructionModel] = None
+    # model_construction: Optional[ModelConstructionModel] = None
+    model_construction: ModelConstructionModel
     model_construction_details: List[ModelConstructionDetail] = Field(
         default_factory=list
     )
@@ -858,7 +859,7 @@ class Stopex(BubbleBaseModel):
         """
         Custom to_bubble_dict implementation to handle None model_construction.
         """
-        from src.logging_config import logger
+        from logging_config import logger
 
         # First get the standard dictionary
         data = super().to_bubble_dict(upload_file_url)

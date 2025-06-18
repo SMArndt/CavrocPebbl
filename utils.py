@@ -13,10 +13,10 @@ from dotenv import load_dotenv
 from fastapi import HTTPException, Security, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.bubble_base import BubbleBaseModel
-from src.logging_config import get_logger
-from src.mappings import FIELD_MAPPING
-from src.models import FaultDirection
+from bubble_base import BubbleBaseModel
+from logging_config import get_logger
+from mappings import FIELD_MAPPING
+from models import FaultDirection
 
 logger = get_logger("utils")
 
@@ -286,8 +286,8 @@ class ConfigBuilder:
         # Special case for Fault normal_direction: always map to single-letter code
         if key.lower().endswith("normal_direction"):
             try:
-                from src.bubble_base import parse_enum
-                from src.enums import FaultDirection
+                from bubble_base import parse_enum
+                from enums import FaultDirection
                 # Attempt to parse value into enum member
                 enum_member = parse_enum(FaultDirection, value, default=None)
                 if enum_member:
@@ -815,7 +815,7 @@ def mapped_value(obj: Any, key: str, ref_lib: dict, default: Any = "") -> Any:
     if is_rock_or_soil:
         # Always emit numeric code for rock_or_soil (1=Soil, 2=Rock)
         try:
-            from src.enums import DomainType
+            from enums import DomainType
             if isinstance(result, DomainType):
                 return result.numeric_value
         except ImportError:
@@ -1072,7 +1072,7 @@ async def load_cached_model(
 #         Returns:
 #             List of ConfigLine objects created from the model data
 #         """
-#         from src.file_generate_stopex import ConfigLine
+#         from file_generate_stopex import ConfigLine
 
 #         # Filter ref_lib for items with specified parent_object
 #         filtered_ref_lib = ReferenceLibraryFilter.filter_by_parent_object(ref_lib, parent_object)
@@ -1123,7 +1123,7 @@ async def load_cached_model(
 #         Returns:
 #             List of ConfigLine objects created from the entity data
 #         """
-#         from src.file_generate_stopex import ConfigLine
+#         from file_generate_stopex import ConfigLine
 
 #         # Get entity name
 #         entity_name = entity_data.get(entity_name_field)
@@ -1367,7 +1367,7 @@ def find_matching_objects(
         }
     elif lower_prefix == 'stress_detail_name':
         # Semantic stress-detail names from the InsituStressType enum
-        from src.enums import InsituStressType
+        from enums import InsituStressType
         names = [e.value for e in InsituStressType]
         # Match any name if it appears in any line (case-insensitive)
         index_set = {

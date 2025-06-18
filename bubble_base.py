@@ -118,7 +118,7 @@ def model_to_bubble(
     raw_data = model.model_dump(by_alias=True, exclude_none=True)
     # Debug: log keys in full vs filtered dumps
     try:
-        from src.logging_config import logger as _logger
+        from logging_config import logger as _logger
         _logger.debug(f"🗃️ full_data keys in model_to_bubble: {list(full_data.keys())}")
         _logger.debug(f"🗃️ raw_data keys in model_to_bubble: {list(raw_data.keys())}")
     except ImportError:
@@ -244,7 +244,7 @@ class BubbleBaseModel(BaseModel):
             data["upload_file"] = extract_filename_from_url(upload_file_url)
         # Specific enum coercion for known enum fields: always emit DB keys
         try:
-            from src.enums import (
+            from enums import (
                 AOIGeoType, DensificationLevel, DomainType,
                 FaultDirection, InsituStressOption, InsituStressType,
                 BackfillType, BackfillDelayRule, BackfillMaterial

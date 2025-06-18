@@ -1,7 +1,7 @@
 # Full Streamlit App Using Stopex Pydantic Model
 
 import streamlit as st
-from models import Stopex, ProjectModel, SettingModel, FLACVersion
+from models import Stopex, ProjectModel, SettingModel, FLACVersion, ModelConstructionModel, ModelConstructionDetail
 from enums import FLACVersion
 from PIL import Image
 from pathlib import Path
@@ -54,8 +54,10 @@ page = st.sidebar.radio("Navigation", sections)
 
 # -- INITIALIZE STOPEX MODEL
 if "stopex" not in st.session_state:
+    
     st.session_state.stopex = Stopex(
         project=ProjectModel(project_name="My Project"),
+        model_construction=ModelConstructionModel(),
         settings=SettingModel(file_format="stl", FLAC_version=FLACVersion.v7_0),
         backfills=[], domains=[], faults=[], stress=None, stress_details=[], solving_parameter=None
     )
@@ -143,12 +145,38 @@ elif page == "Model Construction":
     tabs = st.tabs(["Stoping", "Topography", "Development", "Area of Interest", "Historical Mining"])
 
     with tabs[0]:
+        st.subheader("[DEBUG] stopex fields")
+        st.write("Has 'model_construction':", hasattr(stopex, 'model_construction'))
+        st.write("Type of stopex:", type(stopex))
+        st.write("stopex dict:", stopex.model_dump())
         st.subheader("Stoping")
-        stopex.stoping.geometry = st.file_uploader("Stoping Geometry File", type=["stl", "dxf"], key="stoping_file")
-        stopex.stoping.zone_size_min = st.number_input("Minimum Zone Size", value=stopex.stoping.zone_size_min or 6, step=1, key="stoping_zone_min")
-        stopex.stoping.zone_size_initial = st.number_input("Initial Zone Size", value=stopex.stoping.zone_size_initial or 24, step=1, key="stoping_zone_init")
-        stopex.stoping.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="stoping_accuracy")
-        stopex.stoping.densify_distance = st.number_input("Densification Distance (m)", value=stopex.stoping.densify_distance or 0.0, step=0.5, key="stoping_densify")
+        stoping = ModelConstructionDetail()
+        stoping_file = st.file_uploader("Select Stoping Geometry File (for local path capture only)", type=["stl", "dxf"], key="stoping_file")
+        if stoping_file:
+            stoping.file = stoping_file.name
+
+        stoping_path = st.text_input("Stoping Geometry Filename", value=stoping.file or "")
+        if stoping_path != stoping.file:
+            stoping.file = stoping_path
+        farfield = stopex.settings.farfieldzonesize or 48
+        predefined_multipliers = [farfield / (2 ** i) for i in range(6)]
+        try:
+            min_val = stoping.min_zonesize or farfield / 8
+            init_val = stoping.init_zonesize or farfield / 8
+            min_index = predefined_multipliers.index(min_val)
+            init_index = predefined_multipliers.index(init_val)
+        except (ValueError, TypeError):
+            min_index = init_index = 3
+
+        stoping.min_zonesize = st.selectbox("Minimum Zone Size", predefined_multipliers, index=min_index, key="stoping_zone_min")
+        stoping.init_zonesize = st.selectbox("Initial Zone Size", predefined_multipliers, index=init_index, key="stoping_zone_init")
+        stoping.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="stoping_accuracy")
+        stoping.zone_dens_dist = st.number_input("Densification Distance (m)", value=stoping.zone_dens_dist or 0.0, step=0.5, key="stoping_densify")
+
+        stopex.model_construction.stoping_enabled = True
+        stopex.model_construction.model_construction_detail = ["stoping"]
+        stopex.model_construction.include_topography = "top"
+        
 
     with tabs[1]:
         st.subheader("Topography")
