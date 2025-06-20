@@ -5,7 +5,6 @@ from models import Stopex, ProjectModel, SettingModel, FLACVersion, ModelConstru
 from enums import FLACVersion
 from PIL import Image
 from pathlib import Path
-
 import plotly.graph_objects as go
 from stl import mesh
 import tempfile
@@ -17,24 +16,21 @@ st.set_page_config(layout="wide")
 # -- CUSTOM STYLES
 st.markdown("""
     <style>
-    /* Sidebar */
+    /* Sidebar styling only */
     [data-testid="stSidebar"] {
-        background-color: #3C3C3B;
+        background-color: #3C3C3B !important;
+        color: #F2F1EF !important;
     }
     [data-testid="stSidebar"] .css-1v0mbdj {
-        background-color: #3C3C3B;
+        background-color: #3C3C3B !important;
     }
-    /* Main area */
-    .main .block-container {
-        background-color: #F2F1EF;
-        padding-top: 4rem;
+    .stRadio > div > label {
+        font-size: 1.2rem;
     }
-    /* Header bar and separators */
-    .css-1avcm0n, .stMarkdown h1, .stMarkdown h2 {
-        color: #3C3C3B;
-        border-bottom: 2px solid #707070;
+    [data-testid="stSidebar"] * {
+        color: #F2F1EF !important;
     }
-    </style>
+</style>
 """, unsafe_allow_html=True)
 
 # -- CAVROC LOGO (resize and render at top of sidebar)
@@ -46,7 +42,7 @@ except FileNotFoundError:
     st.sidebar.warning("Logo not found: CavrocPebbl.jpg")
 
 # -- TITLE
-st.title("CavrocPebbl Input Generator")
+st.sidebar.title("Cavroc Pebbl")
 
 # -- SIDEBAR NAVIGATION
 sections = [
@@ -71,13 +67,14 @@ stopex = st.session_state.stopex
 
 # -- PROJECT PAGE
 if page == "Project":
-    st.header("Project Setup")
+    
     stopex.project.project_name = st.text_input("Project Name", value=stopex.project.project_name)
     st.write("Optional: Company, User, etc. could go here")
 
 # -- SETTINGS PAGE
 elif page == "Settings":
-    st.header("Global Settings")
+    
+    st.subheader("Global Settings")
     col1, col2 = st.columns(2)
     with col1:
         stopex.settings.FLAC_version = st.selectbox(
@@ -146,14 +143,21 @@ elif page == "Settings":
         stopex.settings.zonesize_dropdown = str(dropdown_value)
 
 elif page == "Model Construction":
-    st.header("Model Construction")
+    
     tabs = st.tabs(["Stoping", "Topography", "Development", "Area of Interest", "Historical Mining"])
 
     with tabs[0]:
         
         st.subheader("Stoping")
         stoping = ModelConstructionDetail()
-        stoping_file = st.file_uploader("Select Stoping Geometry File (for local path capture only)", type=["stl", "dxf"], key="stoping_file")
+        uploaded_file = st.file_uploader("Select Stoping Geometry File (for local path capture only)", type=["stl", "dxf"], key="stoping_file")
+        if uploaded_file is not None:
+            st.session_state.stoping_file_shadow = uploaded_file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".stl", mode="wb") as tmp_file:
+                tmp_file.write(uploaded_file.getbuffer())
+                st.session_state.stoping_file_path = tmp_file.name
+
+        stoping_file = st.session_state.get("stoping_file_shadow")
         if stoping_file:
             stoping.file = stoping_file.name
 
@@ -177,13 +181,11 @@ elif page == "Model Construction":
 
         stopex.model_construction.stoping_enabled = True
         stopex.model_construction.model_construction_detail = ["stoping"]
-        stopex.model_construction.include_topography = "top"        
+                
 
         # -- STL Preview for Stoping
         if stoping_file and stoping_file.name.endswith(".stl"):
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".stl") as tmp_file:
-                tmp_file.write(stoping_file.read())
-                tmp_file_path = tmp_file.name
+            tmp_file_path = st.session_state.get("stoping_file_path")
 
             try:
                 stl_mesh = mesh.Mesh.from_file(tmp_file_path)
@@ -196,17 +198,63 @@ elif page == "Model Construction":
                 fig = go.Figure(data=[go.Mesh3d(
                     x=x, y=y, z=z,
                     i=i, j=j, k=k,
-                    opacity=0.5,
-                    color='gray'
+                    opacity=0.8,
+                    color='lightblue'
                 )])
-                fig.update_layout(title="Stoping Geometry Preview", margin=dict(l=0, r=0, t=30, b=0))
+                fig.update_layout(
+                    title="Stoping Geometry Preview",
+                    margin=dict(l=0, r=0, t=30, b=0),
+                    scene=dict(aspectmode='data')
+                )
                 st.plotly_chart(fig, use_container_width=True)
             except Exception as e:
                 st.error(f"Failed to preview STL: {e}")
     with tabs[1]:
         st.subheader("Topography")
-        stopex.topography.enabled = st.checkbox("Include Topography", value=stopex.topography.enabled, key="topo_enabled")
-        if stopex.topography.enabled:
+        stopex.model_construction.topo_enabled = st.checkbox("Include Topography", value=stopex.model_construction.topo_enabled, key="topo_enabled")
+        if stopex.model_construction.topo_enabled:
+            uploaded_topo = st.file_uploader("Topography Geometry File", type=["stl", "dxf"], key="topo_file")
+            if uploaded_topo is not None:
+                st.session_state.topo_file_shadow = uploaded_topo
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".stl", mode="wb") as tmp_file:
+                    tmp_file.write(uploaded_topo.getbuffer())
+                    st.session_state.topo_file_path = tmp_file.name
+
+            topo_file = st.session_state.get("topo_file_shadow")
+            topo_path = topo_file.name if topo_file else ""
+            topo_path = st.text_input("Topography Geometry Filename", value=topo_path)
+
+            farfield = stopex.settings.farfieldzonesize or 48
+            predefined_multipliers = [farfield / (2 ** i) for i in range(6)]
+            zone_min = st.selectbox("Minimum Zone Size", predefined_multipliers, index=3, key="topo_zone_min")
+            accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="topo_accuracy")
+            densify = st.number_input("Densification Distance (m)", value=0.0, step=0.5, key="topo_densify")
+
+            # -- STL Preview for Topography
+            if topo_file and topo_file.name.endswith(".stl"):
+                tmp_file_path = st.session_state.get("topo_file_path")
+                try:
+                    stl_mesh = mesh.Mesh.from_file(tmp_file_path)
+                    vertices = np.reshape(stl_mesh.vectors, (-1, 3))
+                    x, y, z = vertices[:, 0], vertices[:, 1], vertices[:, 2]
+                    i = np.arange(0, len(vertices), 3)
+                    j = i + 1
+                    k = i + 2
+
+                    fig = go.Figure(data=[go.Mesh3d(
+                        x=x, y=y, z=z,
+                        i=i, j=j, k=k,
+                        opacity=0.8,
+                        color='lightgreen'
+                    )])
+                    fig.update_layout(
+                        title="Topography Geometry Preview",
+                        margin=dict(l=0, r=0, t=30, b=0),
+                        scene=dict(aspectmode='data')
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Failed to preview STL: {e}")
             stopex.topography.geometry = st.file_uploader("Topography Geometry File", type=["stl", "dxf"], key="topo_file")
             stopex.topography.zone_size_min = st.number_input("Minimum Zone Size", value=stopex.topography.zone_size_min or 6, step=1, key="topo_zone_min")
             stopex.topography.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="topo_accuracy")
@@ -240,7 +288,7 @@ elif page == "Model Construction":
             stopex.historical.densify_distance = st.number_input("Densification Distance (m)", value=stopex.historical.densify_distance or 0.0, step=0.5, key="hist_densify")
 
 elif page == "Generate .f3dat":
-    st.header("Generate .f3dat File")
+    
     st.write("This would serialize your `stopex` model to an .f3dat-compatible format.")
 
     if st.button("Preview Model JSON"):
