@@ -211,6 +211,7 @@ elif page == "Model Construction":
                 st.error(f"Failed to preview STL: {e}")
     with tabs[1]:
         st.subheader("Topography")
+        topography = ModelConstructionDetail()
         stopex.model_construction.topo_enabled = st.checkbox("Include Topography", value=stopex.model_construction.topo_enabled, key="topo_enabled")
         if stopex.model_construction.topo_enabled:
             uploaded_topo = st.file_uploader("Topography Geometry File", type=["stl", "dxf"], key="topo_file")
@@ -221,14 +222,23 @@ elif page == "Model Construction":
                     st.session_state.topo_file_path = tmp_file.name
 
             topo_file = st.session_state.get("topo_file_shadow")
-            topo_path = topo_file.name if topo_file else ""
-            topo_path = st.text_input("Topography Geometry Filename", value=topo_path)
+            if topo_file:
+                topography.file = topo_file.name
+
+            topo_path = st.text_input("Topography Geometry Filename", value=topography.file or "")
+            if topo_path != topography.file:
+                topography.file = topo_path
 
             farfield = stopex.settings.farfieldzonesize or 48
             predefined_multipliers = [farfield / (2 ** i) for i in range(6)]
-            zone_min = st.selectbox("Minimum Zone Size", predefined_multipliers, index=3, key="topo_zone_min")
-            accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="topo_accuracy")
-            densify = st.number_input("Densification Distance (m)", value=0.0, step=0.5, key="topo_densify")
+            try:
+                zone_min_val = topography.min_zonesize or farfield / 8
+                zone_min_index = predefined_multipliers.index(zone_min_val)
+            except (ValueError, TypeError):
+                zone_min_index = 3
+            topography.min_zonesize = st.selectbox("Minimum Zone Size", predefined_multipliers, index=zone_min_index, key="topo_zone_min")
+            topography.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="topo_accuracy")
+            topography.zone_dens_dist = st.number_input("Densification Distance (m)", value=topography.zone_dens_dist or 0.0, step=0.5, key="topo_densify")
 
             # -- STL Preview for Topography
             if topo_file and topo_file.name.endswith(".stl"):
@@ -255,10 +265,7 @@ elif page == "Model Construction":
                     st.plotly_chart(fig, use_container_width=True)
                 except Exception as e:
                     st.error(f"Failed to preview STL: {e}")
-            stopex.topography.geometry = st.file_uploader("Topography Geometry File", type=["stl", "dxf"], key="topo_file")
-            stopex.topography.zone_size_min = st.number_input("Minimum Zone Size", value=stopex.topography.zone_size_min or 6, step=1, key="topo_zone_min")
-            stopex.topography.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="topo_accuracy")
-            stopex.topography.densify_distance = st.number_input("Densification Distance (m)", value=stopex.topography.densify_distance or 0.0, step=0.5, key="topo_densify")
+            stopex.model_construction.model_construction_detail.append("topography")
 
     with tabs[2]:
         st.subheader("Development")
