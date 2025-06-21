@@ -267,32 +267,195 @@ elif page == "Model Construction":
                     st.error(f"Failed to preview STL: {e}")
             stopex.model_construction.model_construction_detail.append("topography")
 
+        
+
     with tabs[2]:
         st.subheader("Development")
-        stopex.development.enabled = st.checkbox("Include Development", value=stopex.development.enabled, key="dev_enabled")
-        if stopex.development.enabled:
-            stopex.development.geometry = st.file_uploader("Development Geometry File", type=["stl", "dxf"], key="dev_file")
-            stopex.development.zone_size_min = st.number_input("Minimum Zone Size", value=stopex.development.zone_size_min or 6, step=1, key="dev_zone_min")
-            stopex.development.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="dev_accuracy")
-            stopex.development.densify_distance = st.number_input("Densification Distance (m)", value=stopex.development.densify_distance or 0.0, step=0.5, key="dev_densify")
+        development = ModelConstructionDetail()
+        stopex.model_construction.dev_enabled = st.checkbox("Include Development", value=stopex.model_construction.dev_enabled, key="dev_enabled")
+        if stopex.model_construction.dev_enabled:
+            uploaded_dev = st.file_uploader("Development Geometry File", type=["stl", "dxf"], key="dev_file")
+            if uploaded_dev is not None:
+                st.session_state.dev_file_shadow = uploaded_dev
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".stl", mode="wb") as tmp_file:
+                    tmp_file.write(uploaded_dev.getbuffer())
+                    st.session_state.dev_file_path = tmp_file.name
+
+            dev_file = st.session_state.get("dev_file_shadow")
+            if dev_file:
+                development.file = dev_file.name
+
+            dev_path = st.text_input("Development Geometry Filename", value=development.file or "")
+            if dev_path != development.file:
+                development.file = dev_path
+            farfield = stopex.settings.farfieldzonesize or 48
+            predefined_multipliers = [farfield / (2 ** i) for i in range(6)]
+            try:
+                dev_zone_val = development.min_zonesize or farfield / 8
+                dev_zone_index = predefined_multipliers.index(dev_zone_val)
+                dev_init_val = development.init_zonesize or farfield / 8
+                dev_init_index = predefined_multipliers.index(dev_init_val)
+            except (ValueError, TypeError):
+                dev_zone_index = 3
+                dev_init_index = 3
+            development.min_zonesize = st.selectbox("Minimum Zone Size", predefined_multipliers, index=dev_zone_index, key="dev_zone_min")
+            development.init_zonesize = st.selectbox("Initial Zone Size", predefined_multipliers, index=dev_init_index, key="dev_zone_init")
+            development.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="dev_accuracy")
+            development.zone_dens_dist = st.number_input("Densification Distance (m)", value=development.zone_dens_dist or 0.0, step=0.5, key="dev_densify")
+
+            stopex.model_construction.model_construction_detail.append("development")
+
+            # -- STL Preview for Development
+            if dev_file and dev_file.name.endswith(".stl"):
+                tmp_file_path = st.session_state.get("dev_file_path")
+                try:
+                    stl_mesh = mesh.Mesh.from_file(tmp_file_path)
+                    vertices = np.reshape(stl_mesh.vectors, (-1, 3))
+                    x, y, z = vertices[:, 0], vertices[:, 1], vertices[:, 2]
+                    i = np.arange(0, len(vertices), 3)
+                    j = i + 1
+                    k = i + 2
+
+                    fig = go.Figure(data=[go.Mesh3d(
+                        x=x, y=y, z=z,
+                        i=i, j=j, k=k,
+                        opacity=0.8,
+                        color='lightyellow'
+                    )])
+                    fig.update_layout(
+                        title="Development Geometry Preview",
+                        margin=dict(l=0, r=0, t=30, b=0),
+                        scene=dict(aspectmode='data')
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Failed to preview STL: {e}")
 
     with tabs[3]:
         st.subheader("Area of Interest")
-        stopex.aoi.enabled = st.checkbox("Include AOI", value=stopex.aoi.enabled, key="aoi_enabled")
-        if stopex.aoi.enabled:
-            stopex.aoi.geometry = st.file_uploader("AOI Geometry File", type=["stl", "dxf"], key="aoi_file")
-            stopex.aoi.zone_size_min = st.number_input("Minimum Zone Size", value=stopex.aoi.zone_size_min or 6, step=1, key="aoi_zone_min")
-            stopex.aoi.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="aoi_accuracy")
-            stopex.aoi.densify_distance = st.number_input("Densification Distance (m)", value=stopex.aoi.densify_distance or 0.0, step=0.5, key="aoi_densify")
+        aoi = ModelConstructionDetail()
+        stopex.model_construction.aoi_enabled = st.checkbox("Include AOI", value=stopex.model_construction.aoi_enabled, key="aoi_enabled")
+        if stopex.model_construction.aoi_enabled:
+            uploaded_aoi = st.file_uploader("AOI Geometry File", type=["stl", "dxf"], key="aoi_file")
+            if uploaded_aoi is not None:
+                st.session_state.aoi_file_shadow = uploaded_aoi
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".stl", mode="wb") as tmp_file:
+                    tmp_file.write(uploaded_aoi.getbuffer())
+                    st.session_state.aoi_file_path = tmp_file.name
+
+            aoi_file = st.session_state.get("aoi_file_shadow")
+            if aoi_file:
+                aoi.file = aoi_file.name
+
+            aoi_path = st.text_input("AOI Geometry Filename", value=aoi.file or "")
+            if aoi_path != aoi.file:
+                aoi.file = aoi_path
+
+            farfield = stopex.settings.farfieldzonesize or 48
+            predefined_multipliers = [farfield / (2 ** i) for i in range(6)]
+            try:
+                aoi_zone_val = aoi.min_zonesize or farfield / 8
+                aoi_zone_index = predefined_multipliers.index(aoi_zone_val)
+                aoi_init_val = aoi.init_zonesize or farfield / 8
+                aoi_init_index = predefined_multipliers.index(aoi_init_val)
+            except (ValueError, TypeError):
+                aoi_zone_index = 3
+                aoi_init_index = 3
+            aoi.min_zonesize = st.selectbox("Minimum Zone Size", predefined_multipliers, index=aoi_zone_index, key="aoi_zone_min")
+            aoi.init_zonesize = st.selectbox("Initial Zone Size", predefined_multipliers, index=aoi_init_index, key="aoi_zone_init")
+            aoi.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="aoi_accuracy")
+            aoi.zone_dens_dist = st.number_input("Densification Distance (m)", value=aoi.zone_dens_dist or 0.0, step=0.5, key="aoi_densify")
+
+            # -- STL Preview for AOI
+            if aoi_file and aoi_file.name.endswith(".stl"):
+                tmp_file_path = st.session_state.get("aoi_file_path")
+                try:
+                    stl_mesh = mesh.Mesh.from_file(tmp_file_path)
+                    vertices = np.reshape(stl_mesh.vectors, (-1, 3))
+                    x, y, z = vertices[:, 0], vertices[:, 1], vertices[:, 2]
+                    i = np.arange(0, len(vertices), 3)
+                    j = i + 1
+                    k = i + 2
+
+                    fig = go.Figure(data=[go.Mesh3d(
+                        x=x, y=y, z=z,
+                        i=i, j=j, k=k,
+                        opacity=0.8,
+                        color='lightcoral'
+                    )])
+                    fig.update_layout(
+                        title="AOI Geometry Preview",
+                        margin=dict(l=0, r=0, t=30, b=0),
+                        scene=dict(aspectmode='data')
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Failed to preview STL: {e}")
+
+            stopex.model_construction.model_construction_detail.append("aoi")
 
     with tabs[4]:
         st.subheader("Historical Mining")
-        stopex.historical.enabled = st.checkbox("Include Historical Mining", value=stopex.historical.enabled, key="hist_enabled")
-        if stopex.historical.enabled:
-            stopex.historical.geometry = st.file_uploader("Historical Mining Geometry File", type=["stl", "dxf"], key="hist_file")
-            stopex.historical.zone_size_min = st.number_input("Minimum Zone Size", value=stopex.historical.zone_size_min or 6, step=1, key="hist_zone_min")
-            stopex.historical.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="hist_accuracy")
-            stopex.historical.densify_distance = st.number_input("Densification Distance (m)", value=stopex.historical.densify_distance or 0.0, step=0.5, key="hist_densify")
+        hist = ModelConstructionDetail()
+        stopex.model_construction.hist_enabled = st.checkbox("Include Historical Mining", value=stopex.model_construction.hist_enabled, key="hist_enabled")
+        if stopex.model_construction.hist_enabled:
+            uploaded_hist = st.file_uploader("Historical Mining Geometry File", type=["stl", "dxf"], key="hist_file")
+            if uploaded_hist is not None:
+                st.session_state.hist_file_shadow = uploaded_hist
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".stl", mode="wb") as tmp_file:
+                    tmp_file.write(uploaded_hist.getbuffer())
+                    st.session_state.hist_file_path = tmp_file.name
+
+            hist_file = st.session_state.get("hist_file_shadow")
+            if hist_file:
+                hist.file = hist_file.name
+
+            hist_path = st.text_input("Historical Mining Geometry Filename", value=hist.file or "", key="hist_filename")
+            if hist_path != hist.file:
+                hist.file = hist_path
+
+            farfield = stopex.settings.farfieldzonesize or 48
+            predefined_multipliers = [farfield / (2 ** i) for i in range(6)]
+            try:
+                hist_zone_val = hist.min_zonesize or farfield / 8
+                hist_zone_index = predefined_multipliers.index(hist_zone_val)
+                hist_init_val = hist.init_zonesize or farfield / 8
+                hist_init_index = predefined_multipliers.index(hist_init_val)
+            except (ValueError, TypeError):
+                hist_zone_index = 3
+                hist_init_index = 3
+            hist.min_zonesize = st.selectbox("Minimum Zone Size", predefined_multipliers, index=hist_zone_index, key="hist_zone_min_select")
+            hist.init_zonesize = st.selectbox("Initial Zone Size", predefined_multipliers, index=hist_init_index, key="hist_zone_init")
+            hist.geometry_accuracy = st.selectbox("Geometry Accuracy", ["Low", "Intermediate", "High"], index=1, key="hist_accuracy_select")
+            hist.zone_dens_dist = st.number_input("Densification Distance (m)", value=hist.zone_dens_dist or 0.0, step=0.5, key="hist_densify")
+
+            if hist_file and hist_file.name.endswith(".stl"):
+                tmp_file_path = st.session_state.get("hist_file_path")
+                try:
+                    stl_mesh = mesh.Mesh.from_file(tmp_file_path)
+                    vertices = np.reshape(stl_mesh.vectors, (-1, 3))
+                    x, y, z = vertices[:, 0], vertices[:, 1], vertices[:, 2]
+                    i = np.arange(0, len(vertices), 3)
+                    j = i + 1
+                    k = i + 2
+
+                    fig = go.Figure(data=[go.Mesh3d(
+                        x=x, y=y, z=z,
+                        i=i, j=j, k=k,
+                        opacity=0.8,
+                        color='lightgray'
+                    )])
+                    fig.update_layout(
+                        title="Historical Mining Geometry Preview",
+                        margin=dict(l=0, r=0, t=30, b=0),
+                        scene=dict(aspectmode='data')
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Failed to preview STL: {e}")
+
+            stopex.model_construction.model_construction_detail.append("historical")
+            
 
 elif page == "Generate .f3dat":
     
