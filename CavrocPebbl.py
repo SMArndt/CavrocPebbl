@@ -1,4 +1,4 @@
-# Full Streamlit App Using Stopex Pydantic Model
+﻿# Full Streamlit App Using Stopex Pydantic Model
 
 import streamlit as st
 from models import Stopex, ProjectModel, SettingModel, FLACVersion, ModelConstructionModel, ModelConstructionDetail
@@ -462,6 +462,30 @@ elif page == "Model Construction":
     with tabs[5]:
 
         st.subheader("Summary")
+
+        # -- Geometry Summary Table --
+        def get_check_icon(value):
+            return "✅" if value else "❌"
+
+        def short_accuracy(val):
+            return val[0].upper() if val else ""
+
+        table_data = []
+        labels = ["stoping", "topo", "dev", "aoi", "hist"]
+        for label in labels:
+            enabled = True if label == "stoping" else getattr(stopex.model_construction, f"{label}_enabled", False)
+            details = st.session_state.get(f"{label}_details")
+            table_data.append({
+                "Label": label.upper(),
+                "Enabled": get_check_icon(enabled),
+                "Min Zone": getattr(details, "min_zonesize", "") if details else "",
+                "Init Zone": getattr(details, "init_zonesize", "") if details else "",
+                "Accuracy": short_accuracy(getattr(details, "geometry_accuracy", "")) if details else "",
+                "File": getattr(details, "file", "") if details else ""
+            })
+
+        st.table(table_data)
+
         all_meshes = []
         colors = {
             "stoping": 'lightblue',
