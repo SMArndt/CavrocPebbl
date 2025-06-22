@@ -209,7 +209,9 @@ elif page == "Model Construction":
                 st.plotly_chart(fig, use_container_width=True)
             except Exception as e:
                 st.error(f"Failed to preview STL: {e}")
+
     with tabs[1]:
+
         st.subheader("Topography")
         topography = ModelConstructionDetail()
         stopex.model_construction.topo_enabled = st.checkbox("Include Topography", value=stopex.model_construction.topo_enabled, key="topo_enabled")
@@ -267,9 +269,8 @@ elif page == "Model Construction":
                     st.error(f"Failed to preview STL: {e}")
             stopex.model_construction.model_construction_detail.append("topography")
 
-        
-
     with tabs[2]:
+
         st.subheader("Development")
         development = ModelConstructionDetail()
         stopex.model_construction.dev_enabled = st.checkbox("Include Development", value=stopex.model_construction.dev_enabled, key="dev_enabled")
@@ -332,6 +333,7 @@ elif page == "Model Construction":
                     st.error(f"Failed to preview STL: {e}")
 
     with tabs[3]:
+
         st.subheader("Area of Interest")
         aoi = ModelConstructionDetail()
         stopex.model_construction.aoi_enabled = st.checkbox("Include AOI", value=stopex.model_construction.aoi_enabled, key="aoi_enabled")
@@ -395,6 +397,7 @@ elif page == "Model Construction":
             stopex.model_construction.model_construction_detail.append("aoi")
 
     with tabs[4]:
+
         st.subheader("Historical Mining")
         hist = ModelConstructionDetail()
         stopex.model_construction.hist_enabled = st.checkbox("Include Historical Mining", value=stopex.model_construction.hist_enabled, key="hist_enabled")
@@ -455,9 +458,10 @@ elif page == "Model Construction":
                     st.error(f"Failed to preview STL: {e}")
 
             stopex.model_construction.model_construction_detail.append("historical")
-    # -- Combined Geometry Preview Tab --
+
     with tabs[5]:
-        st.subheader("Combined Geometry Preview")
+
+        st.subheader("Summary")
         all_meshes = []
         colors = {
             "stoping": 'lightblue',
@@ -473,8 +477,15 @@ elif page == "Model Construction":
             ("aoi_file_path", "aoi"),
             ("hist_file_path", "hist")
         ]
+
+        visibility_state = {}
+        cols = st.columns(len(file_keys))
+        for i, (key, label) in enumerate(file_keys):
+            with cols[i]:
+                visibility_state[label] = st.checkbox(f"{label.upper()}", value=True, key=f"vis_{label}")
+
         for key, label in file_keys:
-            if key in st.session_state:
+            if key in st.session_state and visibility_state[label]:
                 try:
                     stl_mesh = mesh.Mesh.from_file(st.session_state[key])
                     vertices = np.reshape(stl_mesh.vectors, (-1, 3))
@@ -487,7 +498,7 @@ elif page == "Model Construction":
                         i=i, j=j, k=k,
                         opacity=0.5,
                         color=colors[label],
-                        name=label.capitalize()
+                        name=f"{label.upper()} ({len(vertices)//3} tris)"
                     ))
                 except Exception as e:
                     st.warning(f"Could not load {label}: {e}")
@@ -497,12 +508,16 @@ elif page == "Model Construction":
             fig.update_layout(
                 title="Combined Geometry Preview",
                 margin=dict(l=0, r=0, t=30, b=0),
-                scene=dict(aspectmode='data')
+                scene=dict(
+                    aspectmode='data',
+                    xaxis=dict(title='X'),
+                    yaxis=dict(title='Y'),
+                    zaxis=dict(title='Z')
+                )
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("No geometry files available to preview.")
-                        
+            st.info("No geometry files available to preview.")           
 
 elif page == "Generate .f3dat":
     
