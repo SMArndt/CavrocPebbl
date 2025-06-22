@@ -144,7 +144,7 @@ elif page == "Settings":
 
 elif page == "Model Construction":
     
-    tabs = st.tabs(["Stoping", "Topography", "Development", "Area of Interest", "Historical Mining"])
+    tabs = st.tabs(["Stoping", "Topography", "Development", "Area of Interest", "Historical Mining", "Summary"])
 
     with tabs[0]:
         
@@ -455,7 +455,54 @@ elif page == "Model Construction":
                     st.error(f"Failed to preview STL: {e}")
 
             stopex.model_construction.model_construction_detail.append("historical")
-            
+    # -- Combined Geometry Preview Tab --
+    with tabs[5]:
+        st.subheader("Combined Geometry Preview")
+        all_meshes = []
+        colors = {
+            "stoping": 'lightblue',
+            "topo": 'lightgreen',
+            "dev": 'lightyellow',
+            "aoi": 'lightcoral',
+            "hist": 'lightgray'
+        }
+        file_keys = [
+            ("stoping_file_path", "stoping"),
+            ("topo_file_path", "topo"),
+            ("dev_file_path", "dev"),
+            ("aoi_file_path", "aoi"),
+            ("hist_file_path", "hist")
+        ]
+        for key, label in file_keys:
+            if key in st.session_state:
+                try:
+                    stl_mesh = mesh.Mesh.from_file(st.session_state[key])
+                    vertices = np.reshape(stl_mesh.vectors, (-1, 3))
+                    x, y, z = vertices[:, 0], vertices[:, 1], vertices[:, 2]
+                    i = np.arange(0, len(vertices), 3)
+                    j = i + 1
+                    k = i + 2
+                    all_meshes.append(go.Mesh3d(
+                        x=x, y=y, z=z,
+                        i=i, j=j, k=k,
+                        opacity=0.5,
+                        color=colors[label],
+                        name=label.capitalize()
+                    ))
+                except Exception as e:
+                    st.warning(f"Could not load {label}: {e}")
+
+        if all_meshes:
+            fig = go.Figure(data=all_meshes)
+            fig.update_layout(
+                title="Combined Geometry Preview",
+                margin=dict(l=0, r=0, t=30, b=0),
+                scene=dict(aspectmode='data')
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No geometry files available to preview.")
+                        
 
 elif page == "Generate .f3dat":
     
