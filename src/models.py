@@ -76,18 +76,6 @@ class RocBoxInput(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    @field_validator(
-        "recon_file_name",
-        "stope_names_file",
-        "stope_lodes_file",
-        "stope_method_file",
-        "stope_direction_file",
-        mode="before",
-    )
-    def strip_file_urls(cls, v):
-        from utils import extract_filename_from_url
-
-        return extract_filename_from_url(v)
 
 
 #
