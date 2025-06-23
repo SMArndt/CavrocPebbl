@@ -46,7 +46,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -- CAVROC LOGO (resize and render at top of sidebar)
-logo_path = Path(__file__).parent / "CavrocPebbl.jpg"
+logo_path = Path(__file__).parent.parent / "static" / "CavrocPebbl.jpg"
 try:
     logo = Image.open(logo_path)
     st.sidebar.image(logo, width=120)
