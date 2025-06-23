@@ -9,6 +9,8 @@ import plotly.graph_objects as go
 from stl import mesh
 import tempfile
 import numpy as np
+import pandas as pd
+
 
 # -- PAGE SETUP (MUST BE FIRST)
 st.set_page_config(layout="wide")
@@ -464,27 +466,49 @@ elif page == "Model Construction":
         st.subheader("Summary")
 
         # -- Geometry Summary Table --
-        def get_check_icon(value):
-            return "✅" if value else "❌"
 
-        def short_accuracy(val):
-            return val[0].upper() if val else ""
+        # Icons for display
+        check = "✅"
+        cross = "❌"
 
-        table_data = []
-        labels = ["stoping", "topo", "dev", "aoi", "hist"]
-        for label in labels:
-            enabled = True if label == "stoping" else getattr(stopex.model_construction, f"{label}_enabled", False)
-            details = st.session_state.get(f"{label}_details")
-            table_data.append({
-                "Label": label.upper(),
-                "Enabled": get_check_icon(enabled),
-                "Min Zone": getattr(details, "min_zonesize", "") if details else "",
-                "Init Zone": getattr(details, "init_zonesize", "") if details else "",
-                "Accuracy": short_accuracy(getattr(details, "geometry_accuracy", "")) if details else "",
-                "File": getattr(details, "file", "") if details else ""
+        # Row templates
+        summary_rows = []
+
+        # Always included
+        summary_rows.append({
+            "Geometry": "Stoping",
+            "Enabled": check,
+            "Min Zone": stoping.min_zonesize or "",
+            "Init Zone": stoping.init_zonesize or "",
+            "Accuracy": stoping.geometry_accuracy if stoping.geometry_accuracy else "",
+            "Densify": stoping.zone_dens_dist or "",
+            "File": stoping.file or ""
+        })
+
+        # Optional tabs and their state
+        optional_geometries = [
+            ("Topography", stopex.model_construction.topo_enabled, topography),
+            ("Development", stopex.model_construction.dev_enabled, development),
+            ("AOI", stopex.model_construction.aoi_enabled, aoi),
+            ("Historical", stopex.model_construction.hist_enabled, hist)
+        ]
+
+        for label, enabled, obj in optional_geometries:
+            summary_rows.append({
+                "Geometry": label,
+                "Enabled": check if enabled else cross,
+                "Min Zone": obj.min_zonesize or "",
+                "Init Zone": obj.init_zonesize or "",
+                "Accuracy": obj.geometry_accuracy if obj.geometry_accuracy else "",
+                "Densify": obj.zone_dens_dist or "",
+                "File": obj.file or ""
             })
 
-        st.table(table_data)
+        # Show DataFrame
+        df = pd.DataFrame(summary_rows)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+        st.markdown("---")
 
         all_meshes = []
         colors = {
@@ -530,7 +554,7 @@ elif page == "Model Construction":
         if all_meshes:
             fig = go.Figure(data=all_meshes)
             fig.update_layout(
-                title="Combined Geometry Preview",
+                title="Preview",
                 margin=dict(l=0, r=0, t=30, b=0),
                 scene=dict(
                     aspectmode='data',
