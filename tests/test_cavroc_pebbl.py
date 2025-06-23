@@ -1,5 +1,5 @@
 import pytest
-from CavrocPebbl import style_accuracy
+from src.CavrocPebbl import style_accuracy
 
 
 @pytest.mark.parametrize(

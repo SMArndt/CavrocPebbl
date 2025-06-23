@@ -16,7 +16,7 @@ def test_render_project_page(monkeypatch):
 
     dummy_st = DummySt()
     # Monkey-patch st in ui.project
-    import ui.project as project_page
+    import src.ui.project as project_page
     monkeypatch.setattr(project_page, 'st', dummy_st)
 
     # Create a simple stopex with project attribute
@@ -83,7 +83,7 @@ def test_render_settings_page(monkeypatch):
 
     dummy_st = DummySt()
     # Monkey-patch st in ui.settings
-    import ui.settings as settings_page
+    import src.ui.settings as settings_page
     monkeypatch.setattr(settings_page, 'st', dummy_st)
 
     # Create simple stopex with settings attribute
@@ -148,7 +148,7 @@ def test_render_generate_page(monkeypatch):
 
     dummy_st = DummySt()
     # Monkey-patch st in ui.generate
-    import ui.generate as gen_page
+    import src.ui.generate as gen_page
     monkeypatch.setattr(gen_page, 'st', dummy_st)
 
     # Create dummy stopex with model dump methods
@@ -196,10 +196,10 @@ def test_render_model_construction_page(monkeypatch):
             pass
 
     dummy_st = DummySt()
-    import ui.model_construction as mc_page
+    import src.ui.model_construction as mc_page
     monkeypatch.setattr(mc_page, 'st', dummy_st)
     # Stub geometry handler
-    import ui.helpers as helpers
+    import src.ui.helpers as helpers
     monkeypatch.setattr(helpers, 'handle_geometry_section', lambda *args, **kwargs: None)
 
     # Create dummy stopex with minimal attributes
