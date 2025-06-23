@@ -1,0 +1,5 @@
+ruff
+pytest>=7.0
+
+# Include runtime dependencies
+-r requirements.txt

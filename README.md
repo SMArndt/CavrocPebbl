@@ -41,7 +41,9 @@ CavrocPebbl provides an interactive user interface to configure FLAC3D model par
 
 ## Setup
 
-Create a Python virtual environment and install dependencies:
+### Python environment
+
+Create a Python virtual environment and install runtime dependencies:
 
 ```bash
 python -m venv .venv
@@ -49,21 +51,60 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Running the Application
-
-Use the provided main.py entrypoint:
+Install all dependencies (runtime + development) in one step:
 
 ```bash
-python main.py
+pip install -r requirements-dev.txt
+```
+
+## Running the Application
+
+Use the provided `main.py` entrypoint. You can add `--prod` to run in production mode:
+
+```bash
+python main.py [--prod]
 ```
 
 Or run directly with Streamlit:
 
 ```bash
-streamlit run src/CavrocPebbl.py
+streamlit run src/cavroc_pebbl.py
 ```
 
 ## Debugging in VSCode
 
-A default debugger configuration is provided in .vscode/launch.json.
-Select the "Streamlit: Run" configuration in the Run & Debug panel.
+A default debugger configuration is provided in `.vscode/launch.json`. Select the "Streamlit: Run" configuration in the Run & Debug panel.
+
+## Configuration
+
+Copy `.envsample` to `.env` and edit as needed:
+
+```bash
+cp .envsample .env
+```
+
+The application loads environment variables from `.env` automatically on startup.
+
+## Testing
+
+Run the test suite with pytest:
+
+```bash
+pytest
+```
+
+## Linting
+
+Lint and automatically fix code style with ruff:
+
+```bash
+ruff fix .
+```
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

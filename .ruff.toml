@@ -1,0 +1,2 @@
+line-length = 88
+exclude = ["static", "__pycache__", ".venv", "tests"]
