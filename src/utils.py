@@ -37,7 +37,6 @@ def verify_bearer_token(credentials: HTTPAuthorizationCredentials = Depends(get_
     if not expected_token or credentials.credentials != expected_token:
         raise HTTPException(status_code=401, detail="Invalid or missing Bearer token")
 
-
 def map_request_fields(request_data: dict[str, Any]) -> dict[str, Any]:
     """Map incoming fields to the expected fields based on FIELD_MAPPING."""
     mapped_data = {}
@@ -46,21 +45,6 @@ def map_request_fields(request_data: dict[str, Any]) -> dict[str, Any]:
         mapped_key = FIELD_MAPPING.get(key, key)
         mapped_data[mapped_key] = value
     return mapped_data
-
-
-# async def upload_to_bubble(file_path: str, api_url: str, project_id: str) -> dict:
-#     """Upload the generated file to Bubble API."""
-#     try:
-#         with open(file_path, "rb") as file:
-#             response = await httpx.post(
-#                 f"{api_url}/{project_id}",
-#                 files={"file": (file_path, file, "application/octet-stream")}
-#             )
-#             response.raise_for_status()
-#             return response.json()
-#     except httpx.RequestError as e:
-#         raise Exception(f"Error uploading file to Bubble API: {str(e)}")
-
 
 def log_request(request_data: Any, message_type: str = None):
     """
@@ -77,11 +61,9 @@ def log_request(request_data: Any, message_type: str = None):
         pass
         # logger.info(f"📥 Request | {request_data}")
 
-
 def log_error(error_message):
     """Log an error message with a standardized format."""
     logger.error(f"❌ Error | {error_message}")
-
 
 def sanitize_data(data: str):
     """Sanitize project name by removing special characters."""
@@ -122,7 +104,6 @@ def resolve_placeholders(template: str, replacements: Dict[str, str]) -> str:
 
     return re.sub(r"<([^>]+)>", _repl, template)
 
-
 def extract_filename_from_url(url: str) -> str:
     """Extract the filename from a URL with proper handling of URL encoding."""
     from urllib.parse import unquote, urlparse
@@ -145,7 +126,6 @@ def extract_filename_from_url(url: str) -> str:
 
     return filename
 
-
 async def fetch_data(api_url: str) -> dict:
     """Fetch data from the given API URL."""
     try:
@@ -155,7 +135,6 @@ async def fetch_data(api_url: str) -> dict:
             return response.json()
     except httpx.RequestError as e:
         raise Exception(f"Error fetching data from API: {str(e)}") from e
-
 
 async def download_file(file_url: str, save_directory: Path) -> str:
     """Download a file and save it to the given directory."""
@@ -724,23 +703,6 @@ class ConfigBuilder:
         """
         return "\n".join(self.lines)
 
-    # def add_host_domain_section(self, field_groups, domain=None, ref_lib=None):
-    #     for group_heading, field_mappings in field_groups:
-    #         self.subheading(group_heading)
-    #         for key_template, field_name, default in field_mappings:
-    #             output_key = key_template.replace("domain{index}", "host")
-    #             key_template.replace("domain{index}", "<domain_name>")
-    #             val = getattr(domain, field_name, default) if domain else default
-
-    #             if field_name == "<domain_name>_Rock_or_Soil" and hasattr(
-    #                 domain, "domain_type"
-    #             ):
-    #                 val = domain.domain_type.value
-
-    #             self.config_line(output_key, val)
-    #         self.newline()
-
-
 def get_value(obj: Any, key: str, default: Any = "") -> Any:
     """
     Safely get a value from an object or dictionary.
@@ -760,7 +722,6 @@ def get_value(obj: Any, key: str, default: Any = "") -> Any:
             return obj.get(key, default)
     return default
 
-
 def sort_by_index(items: list) -> list:
     """
     Sort a list of items by their 'index' attribute.
@@ -777,7 +738,6 @@ def sort_by_index(items: list) -> list:
     except (ValueError, TypeError) as e:
         logger.warning(f"Failed to sort items by index: {e}")
         return items
-
 
 def mapped_value(obj: Any, key: str, ref_lib: dict, default: Any = "") -> Any:
     """
@@ -880,376 +840,6 @@ def mapped_value(obj: Any, key: str, ref_lib: dict, default: Any = "") -> Any:
 
     return result
 
-
-# --- Caching Utilities ---
-
-
-async def cache_composite_model(
-    project_id: str,
-    app_version: str,
-    composite_obj: Any,
-    cache_path_template: str = "cache/composite_{project_id}_{app_version}.json",
-    use_cache_flag: bool = True,
-) -> None:
-    """
-    Cache a composite model object to disk.
-
-    Parameters:
-        project_id: Project identifier
-        app_version: Application version identifier
-        composite_obj: The object to cache
-        cache_path_template: Template for cache file path
-        use_cache_flag: Whether to use cache
-    """
-    if not use_cache_flag or not composite_obj:
-        return
-
-    import os
-    import pickle
-
-    cache_file = cache_path_template.format(
-        project_id=project_id, app_version=app_version
-    )
-    try:
-        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
-        with open(cache_file, "wb") as f:
-            pickle.dump(composite_obj, f)
-        logger.info(f"Cached composite {app_version} object: {cache_file}")
-    except Exception as e:
-        logger.error(f"Error caching composite {app_version} object: {e}")
-
-
-async def load_cached_model(
-    project_id: str,
-    app_version: str,
-    cache_path_template: str = "cache/composite_{project_id}_{app_version}.json",
-    use_cache_flag: bool = True,
-    reload: bool = False,
-) -> Any | None:
-    """
-    Load a cached composite model from disk if available.
-
-    Parameters:
-        project_id: Project identifier
-        app_version: Application version identifier
-        cache_path_template: Template for cache file path
-        use_cache_flag: Whether to use cache
-        reload: Whether to force reload (ignoring cache)
-
-    Returns:
-        Cached model if available, otherwise None
-    """
-    if not use_cache_flag or reload:
-        return None
-
-    import os
-    import pickle
-
-    cache_file = cache_path_template.format(
-        project_id=project_id, app_version=app_version
-    )
-    if os.path.exists(cache_file):
-        try:
-            with open(cache_file, "rb") as f:
-                logger.info(
-                    f"Loading composite {app_version} object from cache: {cache_file}"
-                )
-                return pickle.load(f)
-        except Exception as e:
-            logger.error(f"Error loading {app_version} from cache: {e}")
-
-    return None
-
-
-# ============================== #
-#      Reference Library Utilities   #
-# ============================== #
-
-# class ReferenceLibraryFilter:
-#     """A utility class to handle reference library filtering consistently."""
-
-#     @staticmethod
-#     def filter_by_parent_object(ref_lib: dict, parent_object: str) -> dict:
-#         """
-#         Filters the reference library for items with the specified parent_object.
-
-#         Args:
-#             ref_lib: The reference library dictionary
-#             parent_object: The parent object to filter by
-
-#         Returns:
-#             A filtered dictionary containing only items with the matching parent_object
-#         """
-#         return {k: v for k, v in ref_lib.items() if v.get('parent_object') == parent_object}
-
-#     @staticmethod
-#     def filter_with_template(ref_lib: dict, template_pattern: str) -> dict:
-#         """
-#         Filters the reference library for items containing a specific template pattern.
-
-#         Args:
-#             ref_lib: The reference library dictionary
-#             template_pattern: The template pattern to filter by (e.g., "<domain_name>")
-
-#         Returns:
-#             A filtered dictionary containing only items with the matching template pattern
-#         """
-#         return {k: v for k, v in ref_lib.items() if template_pattern in k}
-
-#     @staticmethod
-#     def get_value_by_outputfile_name(outputfile_name: str,
-#                                      settings_ref_lib: dict,
-#                                      composite_obj: Any) -> Optional[Any]:
-#         """
-#         Looks up a value from the composite object using the outputfile_name from settings_ref_library.
-
-#         Args:
-#             outputfile_name: The output file name to look up in the reference library
-#             settings_ref_lib: The settings reference library dictionary
-#             composite_obj: The composite object containing the actual values
-
-#         Returns:
-#             The value from the composite object or None if not found
-#         """
-#         # Find the mapping in the reference library by outputfile_name
-#         for key, mapping in settings_ref_lib.items():
-#             if mapping.get('outputfile_name') == outputfile_name:
-#                 # Get the internal_name to look up in the composite object
-#                 internal_name = mapping.get('internal_name', key)
-
-#                 # Check if composite_obj has 'settings' attribute
-#                 if hasattr(composite_obj, 'settings'):
-#                     # Convert settings object to dictionary
-#                     settings_data = composite_obj.settings.model_dump()
-#                     # Look for the value using internal_name
-#                     return settings_data.get(internal_name)
-
-#                 return None
-
-#         return None
-
-#     @staticmethod
-#     def process_templated_field(template_key: str,
-#                                entity_name: str,
-#                                template_pattern: str,
-#                                field_name: str) -> Optional[str]:
-#         """
-#         Determines if a field matches a template pattern.
-
-#         Args:
-#             template_key: The template key from the reference library
-#             entity_name: The name of the entity (domain, fault, etc.)
-#             template_pattern: The template pattern (e.g., "<domain_name>")
-#             field_name: The field name to check
-
-#         Returns:
-#             The field part or None if it doesn't match
-#         """
-#         if template_pattern in template_key:
-#             # Extract the field name part after the prefix (e.g., domain_name_field -> field)
-#             prefix = template_pattern.strip('<>') + '_'
-#             if prefix in template_key:
-#                 field_part = template_key.split("_", 1)[1] if "_" in template_key else ""
-
-#                 # Check if field matches either directly or with prefix removed
-#                 if (field_name == field_part or
-#                     field_name.replace(f"{template_pattern.strip('<>')}_", "") == field_part):
-#                     return field_part
-#         return None
-
-#     @staticmethod
-#     def generate_config_lines_from_model(model_data: dict, ref_lib: dict, parent_object: str) -> List[Any]:
-#         """
-#         Generate configuration lines from a model using the reference library.
-#         Works with both simple and templated object fields.
-
-#         Args:
-#             model_data: Dictionary representation of the model data
-#             ref_lib: The reference library dictionary
-#             parent_object: The parent object type for filtering the reference library
-
-#         Returns:
-#             List of ConfigLine objects created from the model data
-#         """
-#         from file_generate_stopex import ConfigLine
-
-#         # Filter ref_lib for items with specified parent_object
-#         filtered_ref_lib = ReferenceLibraryFilter.filter_by_parent_object(ref_lib, parent_object)
-
-#         config_lines = []
-
-#         for field, value in model_data.items():
-#             # Skip empty values
-#             if value is None:
-#                 continue
-
-#             # Look for direct match in the filtered reference library
-#             mapping = filtered_ref_lib.get(field)
-
-#             # If not found by direct field name, try to find by internal_name
-#             if not mapping:
-#                 for ref_field, ref_mapping in filtered_ref_lib.items():
-#                     if ref_mapping.get('internal_name') == field:
-#                         mapping = ref_mapping
-#                         break
-
-#             # If mapping found, create ConfigLine
-#             if mapping and value is not None:
-#                 output_name = mapping['outputfile_name']
-
-#                 # Check if this is a numeric field that shouldn't be quoted
-#                 quote_value = not (isinstance(value, (int, float)) or
-#                                   (isinstance(value, str) and value.replace('.', '', 1).isdigit()))
-
-#                 config_lines.append(ConfigLine(f"fish set @{output_name} ", value, quote_value=quote_value))
-
-#         return config_lines
-
-#     @staticmethod
-#     def generate_templated_config_lines(entity_data: dict, entity_name_field: str,
-#                                        ref_lib: dict, parent_object: str,
-#                                        template_pattern: str) -> List[Any]:
-#         """
-#         Generate configuration lines from a templated entity using the reference library.
-
-#         Args:
-#             entity_data: Dictionary representation of the entity data
-#             entity_name_field: The field name that contains the entity's name
-#             ref_lib: The reference library dictionary
-#             parent_object: The parent object type for filtering the reference library
-#             template_pattern: The template pattern (e.g., "<domain_name>")
-
-#         Returns:
-#             List of ConfigLine objects created from the entity data
-#         """
-#         from file_generate_stopex import ConfigLine
-
-#         # Get entity name
-#         entity_name = entity_data.get(entity_name_field)
-#         if not entity_name:
-#             return []
-
-#         # Filter ref_lib for items with specified parent_object
-#         filtered_ref_lib = ReferenceLibraryFilter.filter_by_parent_object(ref_lib, parent_object)
-
-#         config_lines = []
-
-#         for field, value in entity_data.items():
-#             # Skip the name field itself and empty values
-#             if field == entity_name_field or value is None:
-#                 continue
-
-#             # Look for template fields in the filtered reference library
-#             for template_key, mapping in filtered_ref_lib.items():
-#                 if template_pattern in template_key:
-#                     field_part = template_key.split("_", 1)[1] if "_" in template_key else ""
-
-#                     # Check direct match or match with prefix removed
-#                     field_without_prefix = field.replace(f"{template_pattern.strip('<>')}_", "")
-#                     if field == field_part or field_without_prefix == field_part:
-#                         output_name = mapping['outputfile_name'].replace(template_pattern, entity_name)
-
-#                         # Check if this is a numeric field that shouldn't be quoted
-#                         quote_value = not (isinstance(value, (int, float)) or
-#                                           (isinstance(value, str) and value.replace('.', '', 1).isdigit()))
-
-#                         config_lines.append(ConfigLine(f"fish set @{output_name} ", value, quote_value=quote_value))
-#                         break
-
-#         return config_lines
-
-
-# def generate_section_header(title: str, is_subsection: bool = False) -> str:
-#     """
-#     Generates a formatted section header with comment decorations.
-
-#     Args:
-#         title: The title of the section
-#         is_subsection: Whether this is a subsection (uses shorter separator)
-
-#     Returns:
-#         Formatted section header string
-#     """
-#     if is_subsection:
-#         return f";------------------------------\n;==== {title}\n;------------------------------"
-#     else:
-#         return f";==============================\n;==== {title}\n;=============================="
-
-
-# def process_section(data: dict,
-#                    ref_lib_filtered: dict,
-#                    outputfile_prefix: str = "",
-#                    special_handlers: Dict[str, Callable] = None) -> List[str]:
-#     """
-#     Generic section processor for standard fields using the reference library.
-
-#     Args:
-#         data: The data dictionary to process
-#         ref_lib_filtered: The filtered reference library
-#         outputfile_prefix: Optional prefix for the outputfile_name
-#         special_handlers: Optional dictionary of special handlers for specific fields
-
-#     Returns:
-#         List of processed lines
-#     """
-#     lines = []
-#     special_handlers = special_handlers or {}
-
-#     for field, value in data.items():
-#         # Check if there's a special handler for this field
-#         if field in special_handlers:
-#             result = special_handlers[field](field, value)
-#             if result:
-#                 lines.append(result)
-#             continue
-
-#         # Standard processing
-#         mapping = ref_lib_filtered.get(field)
-#         if mapping and value is not None:
-#             output_name = mapping['outputfile_name']
-#             if outputfile_prefix:
-#                 output_name = output_name.replace(outputfile_prefix, outputfile_prefix.strip('<>'))
-#             lines.append(f"fish set @{output_name}= '{value}'")
-
-#     return lines
-
-
-# def process_templated_section(entity_data: dict,
-#                              entity_name: str,
-#                              ref_lib_filtered: dict,
-#                              template_pattern: str) -> List[str]:
-#     """
-#     Process a section with templated field names.
-
-#     Args:
-#         entity_data: The entity data dictionary
-#         entity_name: The name of the entity (e.g., domain name, fault name)
-#         ref_lib_filtered: The filtered reference library
-#         template_pattern: The template pattern (e.g., "<domain_name>")
-
-#     Returns:
-#         List of processed lines
-#     """
-#     lines = []
-
-#     for field, value in entity_data.items():
-#         # Skip the name field itself
-#         if field == f"{template_pattern.strip('<>')}_name":
-#             continue
-
-#         # Look for template fields in the filtered reference library
-#         for template_key, mapping in ref_lib_filtered.items():
-#             field_part = ReferenceLibraryFilter.process_templated_field(
-#                 template_key, entity_name, template_pattern, field)
-
-#             if field_part is not None:
-#                 output_name = mapping['outputfile_name'].replace(template_pattern, entity_name)
-#                 lines.append(f"fish set @{output_name}= '{value}'")
-#                 break
-
-#     return lines
-
-
 def bubbleify_composite_model(composite_obj: BubbleBaseModel) -> dict[str, Any]:
     """
     🧡 bubbleify_composite_model
@@ -1279,7 +869,6 @@ def bubbleify_composite_model(composite_obj: BubbleBaseModel) -> dict[str, Any]:
 
     return composite_obj.to_bubble_dict()
 
-
 def safe_get(obj: Any, dotted_attr: str, default: Any = None) -> Any:
     """
     Safely get a (potentially dotted) attribute path from an object.
@@ -1293,7 +882,6 @@ def safe_get(obj: Any, dotted_attr: str, default: Any = None) -> Any:
         return obj
     except AttributeError:
         return default
-
 
 def safe_config_line(
     builder,
@@ -1316,7 +904,6 @@ def safe_config_line(
     else:
         builder.config_line(output_key, value)
 
-
 def get_items_by_type(data: dict, type_key: str) -> list[dict]:
     """
     Utility to extract a list of items from a given key in the full data dictionary.
@@ -1336,7 +923,6 @@ def get_items_by_type(data: dict, type_key: str) -> list[dict]:
     if isinstance(items, list):
         return items
     return []
-
 
 def find_matching_objects(
     lines: List[str],
@@ -1465,7 +1051,6 @@ def find_matching_objects(
         logger.debug(f"📦 {name}: {fields}")
 
     return list(objects.values())
-
 
 def detect_object_keys(lines: list[str], prefix_pattern: str) -> list[str]:
     """

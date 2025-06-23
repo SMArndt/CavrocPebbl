@@ -11,12 +11,12 @@ def strip_empty_fields(d: dict) -> dict:
     """Remove keys with empty values (None, empty string, empty list, empty dict)."""
     return {k: v for k, v in d.items() if v not in (None, "", [], {})}
 
-
 def extract_filename_from_url(url: Optional[str]) -> str:
     if not url:
         return ""
     parsed = urlparse(url)
     return unquote(parsed.path.split("/")[-1]) or ""
+
 def parse_enum(enum_class, value, default=None):
     if value is None or value == "":
         return default
@@ -173,8 +173,6 @@ def model_to_bubble(
     cleaned = {alias_map.get(k, k): v for k, v in cleaned.items()}
 
     return cleaned
-
-
 
 class BubbleBaseModel(BaseModel):
     created_date: Optional[datetime] = Field(default=None, alias="Created Date", exclude=True)
