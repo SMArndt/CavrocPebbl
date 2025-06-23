@@ -1,6 +1,6 @@
 # utils/bubble_base.py
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from enum import Enum
 from urllib.parse import urlparse, unquote
 from typing import Any, Dict, Optional, List
@@ -182,6 +182,17 @@ class BubbleBaseModel(BaseModel):
     created_by: Optional[str] = Field(default=None, alias="Created By", exclude=True)
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
+    @model_validator(mode="before")
+    def _strip_file_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Automatically strip URL components from any file_fields defined in Meta.
+        """
+        file_fields = getattr(getattr(cls, 'Meta', None), 'file_fields', [])
+        for field in file_fields:
+            if field in values:
+                values[field] = extract_filename_from_url(values[field])
+        return values
+
     def strip_metadata(self, data: Dict[str, Any]) -> Dict[str, Any]:
         return {k: v for k, v in data.items() if k not in BUBBLE_METADATA_FIELDS}
 
@@ -190,12 +201,12 @@ class BubbleBaseModel(BaseModel):
             if isinstance(v, Enum):
                 data[k] = enum_to_bubble_value(v, k)
         return data
-    
+
     def to_bubble_dict(self, upload_file_url: Optional[str] = None) -> dict:
-        file_fields = getattr(self.__class__, "Meta", None)
-        file_fields = getattr(file_fields, "file_fields", [])
-        enum_overrides = getattr(self.__class__, "Meta", None)
-        enum_overrides = getattr(enum_overrides, "enum_overrides", {})
+        file_fields = getattr(self.__class__, 'Meta', None)
+        file_fields = getattr(file_fields, 'file_fields', [])
+        enum_overrides = getattr(self.__class__, 'Meta', None)
+        enum_overrides = getattr(enum_overrides, 'enum_overrides', {})
 
         data = model_to_bubble(
             self,
