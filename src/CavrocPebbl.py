@@ -11,6 +11,16 @@ import tempfile
 import numpy as np
 import pandas as pd
 
+def style_accuracy(val):
+    if val == "High":
+        color = "#007BFF"  # Blue
+    elif val == "Intermediate":
+        color = "#28a745"  # Green
+    elif val == "Low":
+        color = "#fd7e14"  # Orange
+    else:
+        return val
+    return f'<span style="color: {color}; font-weight: bold;">{val}</span>'
 
 # -- PAGE SETUP (MUST BE FIRST)
 st.set_page_config(layout="wide")
@@ -481,7 +491,7 @@ elif page == "Model Construction":
             "Min Zone": stoping.min_zonesize or "",
             "Init Zone": stoping.init_zonesize or "",
             "Accuracy": stoping.geometry_accuracy if stoping.geometry_accuracy else "",
-            "Densify": stoping.zone_dens_dist or "",
+            "Distance": stoping.zone_dens_dist or "",
             "File": stoping.file or ""
         })
 
@@ -498,15 +508,23 @@ elif page == "Model Construction":
                 "Geometry": label,
                 "Enabled": check if enabled else cross,
                 "Min Zone": obj.min_zonesize or "",
-                "Init Zone": obj.init_zonesize or "",
+                "Init Zone": obj.init_zonesize or ("--" if label=="Topography" else ""),
                 "Accuracy": obj.geometry_accuracy if obj.geometry_accuracy else "",
-                "Densify": obj.zone_dens_dist or "",
+                "Distance": obj.zone_dens_dist or "",
                 "File": obj.file or ""
             })
 
-        # Show DataFrame
+        # # Show DataFrame
+        # df = pd.DataFrame(summary_rows)
+        # st.dataframe(df, use_container_width=True, hide_index=True)
+
         df = pd.DataFrame(summary_rows)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+
+        # Apply styling to Accuracy column
+        df["Accuracy"] = df["Accuracy"].apply(lambda v: style_accuracy(str(v)))
+
+        # Display with formatting
+        st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -527,13 +545,14 @@ elif page == "Model Construction":
         ]
 
         visibility_state = {}
-        cols = st.columns(len(file_keys))
-        for i, (key, label) in enumerate(file_keys):
+        enabled_keys = [(key, label) for key, label in file_keys if label == "stoping" or getattr(stopex.model_construction, f"{label}_enabled", False)]
+        cols = st.columns(len(enabled_keys))
+        for i, (key, label) in enumerate(enabled_keys):
             with cols[i]:
                 visibility_state[label] = st.checkbox(f"{label.upper()}", value=True, key=f"vis_{label}")
 
-        for key, label in file_keys:
-            if key in st.session_state and visibility_state[label]:
+        for key, label in enabled_keys:
+            if key in st.session_state and visibility_state.get(label, False):
                 try:
                     stl_mesh = mesh.Mesh.from_file(st.session_state[key])
                     vertices = np.reshape(stl_mesh.vectors, (-1, 3))
@@ -568,7 +587,12 @@ elif page == "Model Construction":
             st.info("No geometry files available to preview.")           
 
 elif page == "Generate .f3dat":
-    
+
+    # mc = stopex.model_construction.model_construction_detail
+    # mcd = mc.model_construction_detail
+
+    # output all data in mc and mcd branching into lower level items
+
     st.write("This would serialize your `stopex` model to an .f3dat-compatible format.")
 
     if st.button("Preview Model JSON"):

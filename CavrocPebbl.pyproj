@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bdcae43d-38f4-48e3-81c5-5ba25d7154ff</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>CavrocPebbl.py</StartupFile>
+    <StartupFile>main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,16 +22,20 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="bubble_base.py" />
-    <Compile Include="CavrocPebbl.py" />
-    <Compile Include="enums.py" />
-    <Compile Include="logging_config.py" />
-    <Compile Include="mappings.py" />
-    <Compile Include="models.py" />
-    <Compile Include="utils.py" />
+    <Compile Include="src\bubble_base.py" />
+    <Compile Include="src\CavrocPebbl.py" />
+    <Compile Include="src\enums.py" />
+    <Compile Include="src\logging_config.py" />
+    <Compile Include="main.py" />
+    <Compile Include="src\mappings.py" />
+    <Compile Include="src\models.py" />
+    <Compile Include="src\utils.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|streamlit" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="src\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
