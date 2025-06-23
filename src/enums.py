@@ -1,7 +1,7 @@
 # enums.py
 from enum import Enum, IntEnum
 
-from bubble_base import BubbleEnum
+from src.bubble_base import BubbleEnum
 
 
 class LabelledIntEnum(IntEnum):
