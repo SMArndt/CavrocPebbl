@@ -12,25 +12,21 @@ from ui.settings import render_settings_page
 from ui.model_construction import render_model_construction_page
 from ui.generate import render_generate_page
 
-# -- PAGE SETUP (must be first)
-st.set_page_config(layout="wide")
+from logging_config import get_logger
 
-# -- CUSTOM SIDEBAR STYLES
+logger = get_logger(__name__)
+logger.info("Initializing CavrocPebbl UI module")
+
+# Auto-switch to light theme if system prefers light; default to dark otherwise
 st.markdown(
     """
     <style>
-    [data-testid="stSidebar"] {
-        background-color: #3C3C3B !important;
-        color: #F2F1EF !important;
-    }
-    [data-testid="stSidebar"] .css-1v0mbdj {
-        background-color: #3C3C3B !important;
-    }
-    .stRadio > div > label {
-        font-size: 1.2rem;
-    }
-    [data-testid="stSidebar"] * {
-        color: #F2F1EF !important;
+    @media (prefers-color-scheme: light) {
+      :root {
+        --background-color: #F2F1EF;
+        --secondary-background-color: #F2F1EF;
+        --text-color: #000000;
+      }
     }
     </style>
     """,

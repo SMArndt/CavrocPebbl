@@ -133,7 +133,6 @@ def render_model_construction_page(stopex):
             ("hist_path", "hist"),
         ]
         vis = {}
-        cols = st.columns(len(file_keys))
         for i, (_, lbl) in enumerate(file_keys):
             vis[lbl] = st.checkbox(lbl.upper(), value=True, key=f"vis_{lbl}",
                                     help=f"Show {lbl}" ,

@@ -6,7 +6,6 @@ from typing import Any, Optional
 from typing import List, Dict, Set
 from collections import defaultdict
 import re
-from typing import Dict
 
 import httpx
 from dotenv import load_dotenv
@@ -1408,10 +1407,10 @@ def find_matching_objects(
             # Deduplicate while preserving order
             seen = set()
             deduped = []
-            for l in relevant_lines:
-                if l not in seen:
-                    seen.add(l)
-                    deduped.append(l)
+            for line_item in relevant_lines:
+                if line_item not in seen:
+                    seen.add(line_item)
+                    deduped.append(line_item)
             relevant_lines = deduped
         else:
             # require explicit prefix 'Domain1', 'Fault2', etc.
