@@ -2,7 +2,6 @@
 
 import streamlit as st
 from models import Stopex, ProjectModel, SettingModel, FLACVersion, ModelConstructionModel, ModelConstructionDetail
-from enums import FLACVersion
 from PIL import Image
 from pathlib import Path
 import plotly.graph_objects as go
